@@ -23,14 +23,27 @@ def _get_git_repo(path):
     :return: the Repo object
     :rtype: :class:`git.Repo`
     """
+    path = os.path.abspath(path)
+    
     def at_dir_in_syspath(curr_path):
         return curr_path in _pypath
 
-    path = os.path.abspath(path)
+    def move_up():
+        nonlocal path
+        nonlocal safety
+        path = os.path.abspath(os.path.join(path, '..'))
+        safety -= 1
+
+    def in_subrepo():
+        return os.path.isfile(os.path.join(path, '.gitrepo'))
+
 
     safety = 1000
     break_after_loop = False
     while safety > 0:
+        was_in_subrepo = False
+        if 'git' in path.lower():
+            print(path)
         # I couldn't just always searched clear up to the top of the directory tree, but I wanted to avoid issues where
         # e.g. a virtual env exists inside a Git repo (perhaps you have a git repo for a paper that has the virtualenv
         # inside it) and so searching for a repository containing something like e.g. numpy that is installed from PyPI
@@ -40,17 +53,17 @@ def _get_git_repo(path):
             # If we break as soon as we are on a search path, we will miss packages installed by the "develop" command,
             # since their top level may be both on the search path and the one that contains the repo
             break_after_loop = True
+            # If we were in a subrepo, then we need to go at least one more level up to find the actual repository
+            was_in_subrepo = in_subrepo()
         try:
             repo = git.Repo(path)
         except git.InvalidGitRepositoryError:
-            path = os.path.abspath(os.path.join(path, '..'))
+            move_up()
         else:
             return repo
 
-        if break_after_loop:
+        if break_after_loop and not was_in_subrepo:
             return None
-
-        safety -= 1
 
     raise RuntimeError('Could not find a git repo within {} directory levels'.format(1000))
 

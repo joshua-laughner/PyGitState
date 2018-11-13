@@ -56,6 +56,12 @@ included in the output:
 
 from . import repo_utils
 
+#TODO: how to deal with subrepos?
+# I've got it working that it'll at least find the parent repo, but it prints with the subrepo's package name.
+# Two possibilities:
+#   a) make it so that the containing project, whether it's a package or not, is what gets printed
+#   b) filter the results to just the subrepo files, probably with a wrapper class around the repo, but then how to
+#      avoid double printing them from the parent project?
 
 def print_repos(detail=1):
     """
